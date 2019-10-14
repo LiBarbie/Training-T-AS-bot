@@ -1,4 +1,4 @@
-# Training_T&amp;AS_bot
+# training-t-and-as-bot
 
 This bot will responde to some of the FAQ about the internship and trainings provided by Everis Company
 
