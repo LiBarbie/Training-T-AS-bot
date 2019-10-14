@@ -18,13 +18,11 @@ class MyBot extends ActivityHandler {
         
             // If an answer was received from QnA Maker, send the answer back to the user.
             if (qnaResults[0]) {
-                await context.sendActivity(`QnAMaker returned response: ' ${ qnaResults[0].answer}`);
+                await context.sendActivity(qnaResults[0].answer+'');
             }
             else {
                 // If no answers were returned from QnA Maker, reply with help.
-                await context.sendActivity('No QnA Maker response was returned.'
-                    + 'This example uses a QnA Maker Knowledge Base that focuses on smart light bulbs. '
-                    + `Ask the bot questions like "Why won't it turn on?" or "I need help."`);
+                await context.sendActivity("We couldn't find any answer to your question. Try write it in a different way.");
             }
             await next();
         });
