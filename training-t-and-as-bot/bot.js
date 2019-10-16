@@ -31,7 +31,7 @@ class MyBot extends ActivityHandler {
             const membersAdded = context.activity.membersAdded;
             for (let cnt = 0; cnt < membersAdded.length; ++cnt) {
                 if (membersAdded[cnt].id !== context.activity.recipient.id) {
-                    await context.sendActivity('Hello and welcome!');
+                    await context.sendActivity('Welcome to the Training T&AS FAQ Bot. Ask me anything!');
                 }
             }
             // By calling next() you ensure that the next BotHandler is run.
