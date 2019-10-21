@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-const { ActivityHandler } = require('botbuilder');
+const { ActivityHandler, MessageFactory } = require('botbuilder');
 const { QnAMaker } = require('botbuilder-ai');
 
 class MyBot extends ActivityHandler {
@@ -24,6 +24,7 @@ class MyBot extends ActivityHandler {
                 // If no answers were returned from QnA Maker, reply with help.
                 await context.sendActivity("We couldn't find any answer to your question. Try write it in a different way.");
             }
+            await this.sendSuggestedActions(context);
             await next();
         });
 
@@ -32,11 +33,30 @@ class MyBot extends ActivityHandler {
             for (let cnt = 0; cnt < membersAdded.length; ++cnt) {
                 if (membersAdded[cnt].id !== context.activity.recipient.id) {
                     await context.sendActivity('Welcome to the Training T&AS FAQ Bot. Ask me anything!');
+                    await this.sendSuggestedActions(context);
                 }
             }
             // By calling next() you ensure that the next BotHandler is run.
             await next();
         });
+        
+    
+    }
+
+    async sendSuggestedActions(turnContext) {
+        var reply = MessageFactory.suggestedActions([
+            'Which are the available training resources?',
+             'Where can I find the latest internal courses catalogue?',
+              'Where can I find the updated internal courses calendar?',
+              'I would like to offer a technology training myself to my colleagues.',
+              'How can I access SafariBooksOnline platform?',
+              'What can I do if I can\'t find the technology I want in the catalogue or calendar?',
+              'I want to get certified in a technology/area of expertise.',
+              'Does your company help economically with any certification I\'m interested in?',
+              'Can I be aware of specific IT events happening around here?',
+              'I\'m unsure about which learning path I should start with.'
+            ],"Just ask! If you're not sure about what to ask, you can choose one question here below.");
+        await turnContext.sendActivity(reply);
     }
 }
 
