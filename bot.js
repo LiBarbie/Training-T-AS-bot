@@ -5,9 +5,9 @@ const { ActivityHandler, MessageFactory } = require('botbuilder');
 const { QnAMaker } = require('botbuilder-ai');
 
 class MyBot extends ActivityHandler {
-    constructor(configuration, qnaOptions) {
+    constructor(configuration, qnaOptions,clientSQL) {
         super();
-        if (!configuration) throw new Error('[QnaMakerBot]: Missing parameter. configuration is required');
+        if (!configuration) throw new Error('[QnaMakerBot]: Missin--g parameter. configuration is required');
         // now create a qnaMaker connector.
         this.qnaMaker = new QnAMaker(configuration, qnaOptions);
         
@@ -17,14 +17,15 @@ class MyBot extends ActivityHandler {
             const qnaResults = await this.qnaMaker.getAnswers(context);
         
             // If an answer was received from QnA Maker, send the answer back to the user.
-            if (qnaResults[0]) {
-                await context.sendActivity(qnaResults[0].answer+'');
+            if (qnaResults[0] && qnaResults[0].score>=0.80) {
+                this.respond(qnaResults[0].answer);
+                //await context.sendActivity(qnaResults[0].answer+'');
             }
             else {
                 // If no answers were returned from QnA Maker, reply with help.
                 await context.sendActivity("We couldn't find any answer to your question. Try write it in a different way.");
             }
-            await this.sendSuggestedActions(context);
+            //await this.sendSuggestedActions(context);
             await next();
         });
 
@@ -33,8 +34,9 @@ class MyBot extends ActivityHandler {
             for (let cnt = 0; cnt < membersAdded.length; ++cnt) {
                 if (membersAdded[cnt].id !== context.activity.recipient.id) {
                     await context.sendActivity('Welcome to the Training T&AS FAQ Bot. Ask me anything!');
-                    await this.sendSuggestedActions(context);
-                }
+                    const result = clientSQL.query("SELECT * FROM  certification_path where ID_C_Path=1");
+                    await context.sendActivity(JSON.stringify(result[0])+"");
+                }//if
             }
             // By calling next() you ensure that the next BotHandler is run.
             await next();
@@ -58,6 +60,24 @@ class MyBot extends ActivityHandler {
             ],"Just ask! If you're not sure about what to ask, you can choose one question here below.");
         await turnContext.sendActivity(reply);
     }
+
+    async readSQL(clientSQL){
+        const sql = "SELECT * FROM  certification_path where ID_C_Path=1";
+        clientSQL.query(sql, function (err, result) {
+        if (err) throw err;
+            return(result);
+        });
+    }
+
+    respond(qnaAnswer){
+        switch(qnaAnswer){
+            case '1':
+                break;
+            case '2':
+                break;
+            default : return qnaAnswer;
+        }//switch
+    }//respond
 }
 
 module.exports.MyBot = MyBot;

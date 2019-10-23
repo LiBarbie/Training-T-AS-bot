@@ -4,6 +4,7 @@
 const dotenv = require('dotenv');
 const path = require('path');
 const restify = require('restify');
+const MySql = require('sync-mysql');
 
 // Import required bot services.
 // See https://aka.ms/bot-services to learn more about the different parts of a bot.
@@ -22,6 +23,12 @@ server.listen(process.env.port || process.env.PORT || 3978, () => {
     console.log(`\n${ server.name } listening to ${ server.url }`);
     console.log(`\nGet Bot Framework Emulator: https://aka.ms/botframework-emulator`);
     console.log(`\nTo test your bot, see: https://aka.ms/debug-with-emulator`);
+});
+
+const conSQL = new MySql({
+    host: "localhost",
+    user: "root",
+    database : "tas_db"
 });
 
 // Create adapter.
@@ -47,7 +54,7 @@ adapter.onTurnError = async (context, error) => {
 };
 
 // Create the main dialog.
-const myBot = new MyBot(configuration, {});
+const myBot = new MyBot(configuration, {},conSQL);
 
 // Listen for incoming requests.
 server.post('/api/messages', (req, res) => {
