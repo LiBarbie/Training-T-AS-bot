@@ -73,9 +73,12 @@ class MyBot extends ActivityHandler {
     }//sendSuggestedActions
 
     async actStep(stepContext, luisRecognizer, clientSQL){
-        let resultSQL="";
-        const result = await this.luisRecognizer.recognize(stepContext);
-        let entities = result.entities.Certification_Path.toString() || result.entities.Knowledge_Area.toString() 
+        let resultSQL="", entities, result;
+
+        //if he can't find an intent/entity it's undefined.
+        try{
+        result = await this.luisRecognizer.recognize(stepContext);
+        entities = result.entities.Certification_Path.toString() || result.entities.Knowledge_Area.toString();
 
         switch (LuisRecognizer.topIntent(result)) {
             case 'AskForCertification':
@@ -91,9 +94,13 @@ class MyBot extends ActivityHandler {
                 break;
             
             default : 
-                await stepContext.sendActivity("");
+                await stepContext.sendActivity("We couldn't find any answer to your question. Try write it in a different way.");
                 break;
         }//switch
+        }//try
+        catch(e){
+            await stepContext.sendActivity("We couldn't find any answer to your question. Try write it in a different way.");
+        }//catch
     }//actStep
 
     /*
