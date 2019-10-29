@@ -5,6 +5,7 @@ const dotenv = require('dotenv');
 const path = require('path');
 const restify = require('restify');
 const MySql = require('sync-mysql');
+const {LuisRecognizer } = require('botbuilder-ai');
 
 // Import required bot services.
 // See https://aka.ms/bot-services to learn more about the different parts of a bot.
@@ -45,6 +46,18 @@ const configuration = {
     host: process.env.QnAEndpointHostName
  };
 
+ 
+// If configured
+const luisAppId = process.env.LuisAppId;
+const luisAPIKey = process.env.LuisAPIKey;
+const luisAPIHostName = process.env.LuisAPIHostName || 'westus.api.cognitive.microsoft.com';
+
+const LuisModelUrl = 'https://' + luisAPIHostName + '/luis/v2.0/apps/' + luisAppId + '?subscription-key=' + luisAPIKey;
+
+const luisRecognizer = new LuisRecognizer(LuisModelUrl);
+
+
+
 // Catch-all for errors.
 adapter.onTurnError = async (context, error) => {
     // This check writes out errors to console log .vs. app insights.
@@ -54,7 +67,7 @@ adapter.onTurnError = async (context, error) => {
 };
 
 // Create the main dialog.
-const myBot = new MyBot(configuration, {},conSQL);
+const myBot = new MyBot(configuration, {},conSQL, luisRecognizer);
 
 // Listen for incoming requests.
 server.post('/api/messages', (req, res) => {
