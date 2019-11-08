@@ -16,16 +16,15 @@ class MyBot extends ActivityHandler {
         this.onMessage(async (context, next) => {
             // send user input to QnA Maker.
             const qnaResults = await this.qnaMaker.getAnswers(context);
-        
+            
             // If an answer was received from QnA Maker, send the answer back to the user.
-
-            if(luisRecognizer){
-                await this.actStep(context,luisRecognizer, clientSQL);
+            if (qnaResults[0] && qnaResults[0].score >= 0.70) {
+                await context.sendActivity(qnaResults[0].answer);
+                //await context.sendActivity(qnaResults[0].answer+'');
             }//if
             else{
-                if (qnaResults[0] && qnaResults[0].score >= 0.70) {
-                    await context.sendActivity(qnaResults[0].answer);
-                    //await context.sendActivity(qnaResults[0].answer+'');
+                if(luisRecognizer){
+                    await this.actStep(context,luisRecognizer, clientSQL);
                 }//if
                 else {
                     // If no answers were returned from QnA Maker, reply with help.
@@ -72,31 +71,38 @@ class MyBot extends ActivityHandler {
         await turnContext.sendActivity(reply);
     }//sendSuggestedActions
 
+    /*
+        @param stepContext the context of the bot
+        @param luisRecognizer the Luis object
+        @param clientSQL the SQL connection
+        @return the result of the Luis Query
+    */
     async actStep(stepContext, luisRecognizer, clientSQL){
         let resultSQL="", entities, result;
 
         //if he can't find an intent/entity it's undefined.
         try{
-        result = await this.luisRecognizer.recognize(stepContext);
-        entities = result.entities.Certification_Path.toString() || result.entities.Knowledge_Area.toString();
-
-        switch (LuisRecognizer.topIntent(result)) {
-            case 'AskForCertification':
-                //send the query to the database
-                resultSQL = clientSQL.query("SELECT k_a.K_Area_Name, c_p.C_Path_Name, c.C_Name from certification as c join certification_path as c_p on c.ID_C_Path=c_p.ID_C_Path join knowledge_area as k_a on k_a.ID_K_Area=c_p.ID_K_Area where C_Path_Name='"+entities+"' or K_Area_Name='"+entities+"' or C_Name LIKE '%"+entities+"%'");
-                await stepContext.sendActivity(this.toStringCertifications(resultSQL));
-                break;
-
-            case 'AskForEmployee' :
-                //send the query to the database
-                resultSQL = clientSQL.query("SELECT DISTINCT e.E_Name, e.E_Surname FROM certification_employee as c_e join certification as c on c.C_Name = c_e.C_Name join certification_path as c_p on c_p.ID_C_Path = c.ID_C_Path join knowledge_area as k_a on k_a.ID_K_Area = c_p.ID_K_Area join employee as e on e.ID_E = c_e.ID_E where c_p.C_Path_Name='"+entities+"' or k_a.K_Area_Name='"+entities+"' or c.C_Name LIKE '%"+entities+"%'");
-                await stepContext.sendActivity(this.toStringEmployee(resultSQL));
-                break;
-            
-            default : 
-                await stepContext.sendActivity("We couldn't find any answer to your question. Try write it in a different way.");
-                break;
-        }//switch
+            result = await this.luisRecognizer.recognize(stepContext);
+            entities = result.entities.Knowledge_Area ? result.entities.Knowledge_Area[0] : result.entities.Certification_Path[0];
+            //switch the luis intents.
+            switch (LuisRecognizer.topIntent(result)) {
+                //the user asked for a certification
+                case 'AskForCertification':
+                    //send the query to the database
+                    resultSQL = clientSQL.query("SELECT k_a.K_A_Name, c_p.C_P_Name, c.C_Name from certification as c join certification_path as c_p on c.C_P_Name=c_p.C_P_Name join knowledge_area as k_a on k_a.K_A_Name=c_p.K_A_Name where c.C_P_Name LIKE '%"+entities+"%' or c_p.K_A_Name LIKE '%"+entities+"%' or c.C_Name LIKE '%"+entities+"%'");
+                    await stepContext.sendActivity(this.toStringCertifications(resultSQL));
+                    break;
+                //the user asked who has a certain certification
+                case 'AskForEmployee' :
+                    //send the query to the database
+                    resultSQL = clientSQL.query("SELECT DISTINCT e.Name, e.Surname FROM certification_employee as c_e join certification as c on c.C_Name = c_e.C_Name join certification_path as c_p on c_p.C_P_Name = c.C_P_Name join knowledge_area as k_a on k_a.K_A_Name = c_p.K_A_Name join employee as e on e.ID_E = c_e.ID_E where c_p.C_P_Name LIKE '%"+entities+"%' or k_a.K_A_Name='%"+entities+"%' or c.C_Name LIKE '%"+entities+"%'");
+                    await stepContext.sendActivity(this.toStringEmployee(resultSQL));
+                    break;
+                //found the Luis entity but no intent.
+                default :
+                    await stepContext.sendActivity("We couldn't find any answer to your question. Try write it in a different way.");
+                    break;
+            }//switch
         }//try
         catch(e){
             await stepContext.sendActivity("We couldn't find any answer to your question. Try write it in a different way.");
@@ -111,7 +117,7 @@ class MyBot extends ActivityHandler {
         //console.log(jsonObject);
         let s="";
         jsonObject.forEach(function(obj){
-            s+="Knowledge Area : "+obj.K_Area_Name+" - Certification Path : "+obj.C_Path_Name+" - Certification : "+obj.C_Name+"\n\n";
+            s+="Knowledge Area : "+obj.K_A_Name+" - Certification Path : "+obj.C_P_Name+" - Certification : "+obj.C_Name+"\n\n";
         });//foreach
         return s;
     }//toStringCertifications
@@ -124,28 +130,10 @@ class MyBot extends ActivityHandler {
         //console.log(jsonObject);
         let s="";
         jsonObject.forEach(function(obj){
-            s+="Employee : "+obj.E_Name+" "+obj.E_Surname+"\n\n";
+            s+="Employee : "+obj.Name+" "+obj.Surname+"\n\n";
         });//foreach
         return s;
     }//toStringEmployee
-
-    /*
-        @param mex the message sent by the user
-        @return the message without symbols, excessive spaces, lower cased, ...
-    */
-    messageIntoArray(mex){
-        const removes = [
-            "?",",",".",";","!","\\","\"","(",")","'","#","@","%","=","^","+","-","_","*","[","]","{","}","&","|","<",">",":"
-        ];
-        //removes excessives spaces;
-        mex = mex.trim().toLowerCase();
-        //removes symbols so there will be just words
-        removes.forEach(function(symbol){
-            mex  = mex.replace(symbol,"");
-        });//foreach
-        return mex.split(' ');
-    }//messageIntoArray
-
 }//myBot
 
 module.exports.MyBot = MyBot;
