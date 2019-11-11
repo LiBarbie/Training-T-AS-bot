@@ -1,37 +1,41 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-const { ActivityHandler, MessageFactory } = require('botbuilder');
+const { ActivityHandler, MessageFactory, CardFactory } = require('botbuilder');
 const { QnAMaker, LuisRecognizer } = require('botbuilder-ai');
+const https = require('https');
+
+const axios = require("axios");
+
 
 class MyBot extends ActivityHandler {
     constructor(configuration, qnaOptions,clientSQL,luisRecognizer) {
         super();
-        if (!configuration) throw new Error('[QnaMakerBot]: Missin--g parameter. configuration is required');
+        //if (!configuration) throw new Error('[QnaMakerBot]: Missin--g parameter. configuration is required');
         // now create a qnaMaker connector.
-        this.qnaMaker = new QnAMaker(configuration, qnaOptions);
+        //this.qnaMaker = new QnAMaker(configuration, qnaOptions);
         this.luisRecognizer = luisRecognizer;
         
         // See https://aka.ms/about-bot-activity-message to learn more about the message and other activity types.
         this.onMessage(async (context, next) => {
             // send user input to QnA Maker.
-            const qnaResults = await this.qnaMaker.getAnswers(context);
-        
+            //const qnaResults = await this.qnaMaker.getAnswers(context);
+            
             // If an answer was received from QnA Maker, send the answer back to the user.
+            //if (qnaResults[0] && qnaResults[0].score >= 0.70) {
+             //   await context.sendActivity(qnaResults[0].answer);
+                //await context.sendActivity(qnaResults[0].answer+'');
+            //}//if
+            //else{
+                if(luisRecognizer){
+                    await this.actStep(context,luisRecognizer, clientSQL);
 
-            if(luisRecognizer){
-                await this.actStep(context,luisRecognizer, clientSQL);
-            }//if
-            else{
-                if (qnaResults[0] && qnaResults[0].score >= 0.70) {
-                    await context.sendActivity(qnaResults[0].answer);
-                    //await context.sendActivity(qnaResults[0].answer+'');
                 }//if
                 else {
                     // If no answers were returned from QnA Maker, reply with help.
                     await context.sendActivity("We couldn't find any answer to your question. Try write it in a different way.");
                 }//else
-            }
+            //}
             await this.sendSuggestedActions(context);
             await next();
         });//onMessage
@@ -72,31 +76,91 @@ class MyBot extends ActivityHandler {
         await turnContext.sendActivity(reply);
     }//sendSuggestedActions
 
+    /*
+        @param stepContext the context of the bot
+        @param luisRecognizer the Luis object
+        @param clientSQL the SQL connection
+        @return the result of the Luis Query
+    */
     async actStep(stepContext, luisRecognizer, clientSQL){
         let resultSQL="", entities, result;
 
         //if he can't find an intent/entity it's undefined.
         try{
-        result = await this.luisRecognizer.recognize(stepContext);
-        entities = result.entities.Certification_Path.toString() || result.entities.Knowledge_Area.toString();
+            result = await this.luisRecognizer.recognize(stepContext);
+            entities = result.entities.Knowledge_Area ? result.entities.Knowledge_Area[0] : result.entities.Certification_Path[0];
+            //switch the luis intents.
+            switch (LuisRecognizer.topIntent(result)) {
+                //the user asked for a certification
+                case 'AskForCertification':
+                    //send the query to the database
+                    resultSQL = clientSQL.query("SELECT k_a.K_A_Name, c_p.C_P_Name, c.C_Name from certification as c join certification_path as c_p on c.C_P_Name=c_p.C_P_Name join knowledge_area as k_a on k_a.K_A_Name=c_p.K_A_Name where c.C_P_Name LIKE '%"+entities+"%' or c_p.K_A_Name LIKE '%"+entities+"%' or c.C_Name LIKE '%"+entities+"%'");
+                    await stepContext.sendActivity(this.toStringCertifications(resultSQL));
+                    break;
+                //the user asked who has a certain certification
+                case 'AskForEmployee' :
+                    //send the query to the database
+                    resultSQL = clientSQL.query("SELECT DISTINCT e.Name, e.Surname FROM certification_employee as c_e join certification as c on c.C_Name = c_e.C_Name join certification_path as c_p on c_p.C_P_Name = c.C_P_Name join knowledge_area as k_a on k_a.K_A_Name = c_p.K_A_Name join employee as e on e.ID_E = c_e.ID_E where c_p.C_P_Name LIKE '%"+entities+"%' or k_a.K_A_Name='%"+entities+"%' or c.C_Name LIKE '%"+entities+"%'");
+                    await stepContext.sendActivity(this.toStringEmployee(resultSQL));
+                    break;
+                //the user asked for specific resources in O'Reilly / SafariBooksOnline
 
-        switch (LuisRecognizer.topIntent(result)) {
-            case 'AskForCertification':
-                //send the query to the database
-                resultSQL = clientSQL.query("SELECT k_a.K_Area_Name, c_p.C_Path_Name, c.C_Name from certification as c join certification_path as c_p on c.ID_C_Path=c_p.ID_C_Path join knowledge_area as k_a on k_a.ID_K_Area=c_p.ID_K_Area where C_Path_Name='"+entities+"' or K_Area_Name='"+entities+"' or C_Name LIKE '%"+entities+"%'");
-                await stepContext.sendActivity(this.toStringCertifications(resultSQL));
-                break;
+                case 'AskForResource' :
+                    //what are the java resources in safaribooksonline?
 
-            case 'AskForEmployee' :
-                //send the query to the database
-                resultSQL = clientSQL.query("SELECT DISTINCT e.E_Name, e.E_Surname FROM certification_employee as c_e join certification as c on c.C_Name = c_e.C_Name join certification_path as c_p on c_p.ID_C_Path = c.ID_C_Path join knowledge_area as k_a on k_a.ID_K_Area = c_p.ID_K_Area join employee as e on e.ID_E = c_e.ID_E where c_p.C_Path_Name='"+entities+"' or k_a.K_Area_Name='"+entities+"' or c.C_Name LIKE '%"+entities+"%'");
-                await stepContext.sendActivity(this.toStringEmployee(resultSQL));
+                    const url = "https://learning.oreilly.com/api/v2/search/?query="+entities;
+                    const getData = async url => {
+                    try {
+                        const response = await axios.get(url);
+                        const data = response.data;
+                        const result = data.results;
+
+                        const cards=[];
+                        const elementsHTML = ['/','<p>','<i>','<br>','<span>','<b>','<div>','<h1>','<h2>','<h3>','<h4>','<ul>','<li>','<em>','<strong>','<mark>','<small>','<del>','<ins>','<sub>','<sup>']
+                        result.forEach(function(infos){
+                            let str = infos.description
+                            elementsHTML.forEach(function (element){
+                                str = str.split(element).join("");
+                            })
+                            str = str.substr(0,255)+"..."
+                            cards.push({"title" : infos.title, "authors" : infos.authors, "publishers" : infos.publishers, "cover" : infos.cover_url, "url" : infos.web_url, "description" : str })
+                        });
+
+                        return cards;
+                    } catch (error) {
+                        console.log(error);
+                    }
+                    };
+                    
+                    const promise = getData(url);
+                    let processPromise="";
+
+                    await Promise.resolve(promise).then(function(value) {
+                        processPromise=value;
+                    });
+
+                    processPromise.forEach(async function (element){
+                        await stepContext.sendActivity({ attachments: [CardFactory.thumbnailCard(
+                            element.title,
+                            [{ url: element.cover }],
+                            [{
+                                type: 'openUrl',
+                                title: 'Go to the resource',
+                                value: "https://learning.oreilly.com"+element.url
+                            }],
+                            {
+                                subtitle: "by "+element.authors+"\n\npublished by "+element.publishers,
+                                text: element.description
+                            }
+                        )]});
+                    })
+
                 break;
-            
-            default : 
-                await stepContext.sendActivity("We couldn't find any answer to your question. Try write it in a different way.");
-                break;
-        }//switch
+                //found the Luis entity but no intent.
+                default :
+                    await stepContext.sendActivity("We couldn't find any answer to your question. Try write it in a different way.");
+                    break;
+            }//switch
         }//try
         catch(e){
             await stepContext.sendActivity("We couldn't find any answer to your question. Try write it in a different way.");
@@ -111,7 +175,7 @@ class MyBot extends ActivityHandler {
         //console.log(jsonObject);
         let s="";
         jsonObject.forEach(function(obj){
-            s+="Knowledge Area : "+obj.K_Area_Name+" - Certification Path : "+obj.C_Path_Name+" - Certification : "+obj.C_Name+"\n\n";
+            s+="Knowledge Area : "+obj.K_A_Name+" - Certification Path : "+obj.C_P_Name+" - Certification : "+obj.C_Name+"\n\n";
         });//foreach
         return s;
     }//toStringCertifications
@@ -124,27 +188,18 @@ class MyBot extends ActivityHandler {
         //console.log(jsonObject);
         let s="";
         jsonObject.forEach(function(obj){
-            s+="Employee : "+obj.E_Name+" "+obj.E_Surname+"\n\n";
+            s+="Employee : "+obj.Name+" "+obj.Surname+"\n\n";
         });//foreach
         return s;
     }//toStringEmployee
 
-    /*
-        @param mex the message sent by the user
-        @return the message without symbols, excessive spaces, lower cased, ...
-    */
-    messageIntoArray(mex){
-        const removes = [
-            "?",",",".",";","!","\\","\"","(",")","'","#","@","%","=","^","+","-","_","*","[","]","{","}","&","|","<",">",":"
-        ];
-        //removes excessives spaces;
-        mex = mex.trim().toLowerCase();
-        //removes symbols so there will be just words
-        removes.forEach(function(symbol){
-            mex  = mex.replace(symbol,"");
-        });//foreach
-        return mex.split(' ');
-    }//messageIntoArray
+    async removeHTMLElements(s){
+        elementsHTML = ['<p>','<i>','<br>','//','<span>','<b>','<div>','<h1>','<h2>','<h3>','<h4>','<ul>','<li>','<em>','<strong>','<mark>','<small>','<del>','<ins>','<sub>','<sup>']
+        elementsHTML.forEach(function(element){
+            s = s.replace(element,"");
+        });
+        return s;
+    }//removeHTMLElements
 
 }//myBot
 

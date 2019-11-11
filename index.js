@@ -29,7 +29,7 @@ server.listen(process.env.port || process.env.PORT || 3978, () => {
 const conSQL = new MySql({
     host: "localhost",
     user: "root",
-    database : "tas_db"
+    database : "tasdb"
 });
 
 // Create adapter.
@@ -41,9 +41,9 @@ const adapter = new BotFrameworkAdapter({
 
 // Map knowledge base endpoint values from .env file into the required format for `QnAMaker`.
 const configuration = {
-    knowledgeBaseId: process.env.QnAKnowledgebaseId,
-    endpointKey: process.env.QnAAuthKey,
-    host: process.env.QnAEndpointHostName
+    //knowledgeBaseId: process.env.QnAKnowledgebaseId,
+    //endpointKey: process.env.QnAAuthKey,
+    //host: process.env.QnAEndpointHostName
  };
 
  
