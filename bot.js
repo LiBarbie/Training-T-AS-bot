@@ -2,6 +2,8 @@
 // Licensed under the MIT License.
 
 const { ActivityHandler, MessageFactory, CardFactory } = require('botbuilder');
+const ResourceCard = require('./resources/resourcecard.js');
+
 const { QnAMaker, LuisRecognizer } = require('botbuilder-ai');
 const https = require('https');
 
@@ -20,14 +22,14 @@ class MyBot extends ActivityHandler {
         this.onMessage(async (context, next) => {
             // send user input to QnA Maker.
             //const qnaResults = await this.qnaMaker.getAnswers(context);
-            
+            await context.sendActivity("Please wait ...");
             // If an answer was received from QnA Maker, send the answer back to the user.
             //if (qnaResults[0] && qnaResults[0].score >= 0.70) {
              //   await context.sendActivity(qnaResults[0].answer);
                 //await context.sendActivity(qnaResults[0].answer+'');
             //}//if
             //else{
-                if(luisRecognizer){
+               if(luisRecognizer){
                     await this.actStep(context,luisRecognizer, clientSQL);
 
                 }//if
@@ -60,19 +62,19 @@ class MyBot extends ActivityHandler {
     */
     async sendSuggestedActions(turnContext) {
         var reply = MessageFactory.suggestedActions([
-            'Which are the available training resources?',
-             'Where can I find the latest internal courses catalogue?',
-              'Where can I find the updated internal courses calendar?',
-              'I would like to offer a technology training myself to my colleagues.',
-              'How can I access SafariBooksOnline platform?',
-              'What can I do if I can\'t find the technology I want in the catalogue or calendar?',
-              'I want to get certified in a technology/area of expertise.',
-              'Does your company help economically with any certification I\'m interested in?',
-              'Can I be aware of specific IT events happening around here?',
-              'I\'m unsure about which learning path I should start with.',
+            'Available training resources?',
+             'Latest internal courses catalogue?',
+              'Updated internal courses calendar?',
+              'Offer a technology training.',
+              'Access SafariBooksOnline.',
+              'Can\'t find the technology I want.',
+              'Want to get certified in a technology/area.',
+              'Get help to achieve certification by Everis.',
+              'Be aware of specific IT events.',
+              'Unsure about the starting learning path.',
               'Which are the Java certifications?',
               'Whom can I ask for SQL certifications?'
-            ],"Just ask! If you're not sure about what to ask, you can choose one question here below.");
+            ],"Suggested Questions :");
         await turnContext.sendActivity(reply);
     }//sendSuggestedActions
 
@@ -108,53 +110,46 @@ class MyBot extends ActivityHandler {
                 case 'AskForResource' :
                     //what are the java resources in safaribooksonline?
 
-                    const url = "https://learning.oreilly.com/api/v2/search/?query="+entities;
+                    const url = 
+                    "https://learning.oreilly.com/api/v2/search/?query="+entities+"&sort=relevance&sort=average_rating&languages=en&topics="+entities+"&limit=3&fields=title&fields=authors&fields=cover_url&fields=web_url&facet_json=true" 
                     const getData = async url => {
                     try {
                         const response = await axios.get(url);
                         const data = response.data;
                         const result = data.results;
 
-                        const cards=[];
-                        const elementsHTML = ['/','<p>','<i>','<br>','<span>','<b>','<div>','<h1>','<h2>','<h3>','<h4>','<ul>','<li>','<em>','<strong>','<mark>','<small>','<del>','<ins>','<sub>','<sup>']
+                        let titles=[], authors=[], covers=[], urls=[];
+                        let infos=[];
+                        
                         result.forEach(function(infos){
-                            let str = infos.description
-                            elementsHTML.forEach(function (element){
-                                str = str.split(element).join("");
-                            })
-                            str = str.substr(0,255)+"..."
-                            cards.push({"title" : infos.title, "authors" : infos.authors, "publishers" : infos.publishers, "cover" : infos.cover_url, "url" : infos.web_url, "description" : str })
+                            titles.push(infos.title);
+                            authors.push(infos.authors);
+                            covers.push(infos.cover_url);
+                            urls.push("https://learning.oreilly.com"+infos.web_url);
                         });
 
-                        return cards;
+                        infos.push(titles);
+                        infos.push(authors);
+                        infos.push(covers);
+                        infos.push(urls);
+
+                        return infos;
+
                     } catch (error) {
                         console.log(error);
                     }
                     };
                     
                     const promise = getData(url);
-                    let processPromise="";
+                    let info="";
 
                     await Promise.resolve(promise).then(function(value) {
-                        processPromise=value;
+                        info=value;
                     });
 
-                    processPromise.forEach(async function (element){
-                        await stepContext.sendActivity({ attachments: [CardFactory.thumbnailCard(
-                            element.title,
-                            [{ url: element.cover }],
-                            [{
-                                type: 'openUrl',
-                                title: 'Go to the resource',
-                                value: "https://learning.oreilly.com"+element.url
-                            }],
-                            {
-                                subtitle: "by "+element.authors+"\n\npublished by "+element.publishers,
-                                text: element.description
-                            }
-                        )]});
-                    })
-
+                    await stepContext.sendActivity({attachments : [CardFactory.adaptiveCard(ResourceCard.createResourceCard(
+                        info[0][0],info[0][1],info[0][2],info[1][0],info[1][1],info[1][2],info[2][0],info[2][1],info[2][2],info[3][0],info[3][1],info[3][2]
+                    ))]});
                 break;
                 //found the Luis entity but no intent.
                 default :
@@ -192,15 +187,6 @@ class MyBot extends ActivityHandler {
         });//foreach
         return s;
     }//toStringEmployee
-
-    async removeHTMLElements(s){
-        elementsHTML = ['<p>','<i>','<br>','//','<span>','<b>','<div>','<h1>','<h2>','<h3>','<h4>','<ul>','<li>','<em>','<strong>','<mark>','<small>','<del>','<ins>','<sub>','<sup>']
-        elementsHTML.forEach(function(element){
-            s = s.replace(element,"");
-        });
-        return s;
-    }//removeHTMLElements
-
 }//myBot
 
 module.exports.MyBot = MyBot;
