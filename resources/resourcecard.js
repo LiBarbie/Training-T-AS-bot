@@ -20,32 +20,32 @@ module.exports = {
                                             "type": "TextBlock",
                                             "text": title1,
                                             "id": "title1",
-                                            "size": "medium"
+                                            "size": "medium",
+                                            "wrap": true,
+                                            "color": "Accent"
                                         },
                                         {
                                             "type": "TextBlock",
                                             "text": author1,
                                             "id": "author1"
-                                        },
-                                        {
-                                            "type": "ActionSet",
-                                            "actions": [
-                                                {
-                                                    "type": "Action.OpenUrl",
-                                                    "url" : url1,
-                                                    "title": "Go to the Resource"
-                                                }
-                                            ]
                                         }
-                                    ]
+                                    ],
+                                    "selectAction": {
+                                        "type": "Action.OpenUrl",
+                                        "url": url1
+                                    }
                                 },
                                 {
                                     "type": "Column",
                                     "items" : [],
-                                    "width": "120px",
+                                    "width": "80px",
                                     "height": "stretch",
-                                    "minHeight": "120px",
-                                    "backgroundImage": img1
+                                    "minHeight": "80px",
+                                    "backgroundImage": img1,
+                                    "selectAction": {
+                                        "type": "Action.OpenUrl",
+                                        "url": url1
+                                    }
                                 }
                             ]
                         }
@@ -71,32 +71,32 @@ module.exports = {
                                                     "type": "TextBlock",
                                                     "text": title2,
                                                     "id": "title2",
-                                                    "size": "Medium"
+                                                    "size": "Medium",
+                                                    "wrap": true,
+                                                    "color": "Accent"
                                                 },
                                                 {
                                                     "type": "TextBlock",
                                                     "text": author2,
                                                     "id": "author2"
-                                                },
-                                                {
-                                                    "type": "ActionSet",
-                                                    "actions": [
-                                                        {
-                                                            "type": "Action.OpenUrl",
-                                                            "url" : url2,
-                                                            "title": "Go to the Resource"
-                                                        }
-                                                    ]
                                                 }
-                                            ]
+                                            ],
+                                            "selectAction": {
+                                                "type": "Action.OpenUrl",
+                                                "url": url2
+                                            }
                                         },
                                         {
                                             "type": "Column",
                                             "items" : [],
-                                            "width": "120px",
+                                            "width": "80px",
                                             "height": "stretch",
-                                            "minHeight": "120px",
-                                            "backgroundImage": img2
+                                            "minHeight": "80px",
+                                            "backgroundImage": img2,
+                                            "selectAction": {
+                                                "type": "Action.OpenUrl",
+                                                "url": url2
+                                            }
                                         }
                                     ]
                                 }
@@ -122,32 +122,32 @@ module.exports = {
                                             "type": "TextBlock",
                                             "text": title3,
                                             "id": "title3",
-                                            "size": "Medium"
+                                            "size": "Medium",
+                                            "wrap": true,
+                                            "color": "Accent"
                                         },
                                         {
                                             "type": "TextBlock",
                                             "text": author3,
                                             "id": "author3"
-                                        },
-                                        {
-                                            "type": "ActionSet",
-                                            "actions": [
-                                                {
-                                                    "type": "Action.OpenUrl",
-                                                    "url" : url3,
-                                                    "title": "Go to the Resource"
-                                                }
-                                            ]
                                         }
-                                    ]
+                                    ],
+                                    "selectAction": {
+                                        "type": "Action.OpenUrl",
+                                        "url": url3
+                                    }
                                 },
                                 {
                                     "type": "Column",
                                     "items" : [],
-                                    "width": "120px",
+                                    "width": "80px",
                                     "height": "stretch",
-                                    "minHeight": "120px",
-                                    "backgroundImage": img3
+                                    "minHeight": "80px",
+                                    "backgroundImage": img3,
+                                    "selectAction": {
+                                        "type": "Action.OpenUrl",
+                                        "url": url3
+                                    }
                                 }
                             ]
                         }

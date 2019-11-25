@@ -41,18 +41,18 @@ const adapter = new BotFrameworkAdapter({
 
 // Map knowledge base endpoint values from .env file into the required format for `QnAMaker`.
 const configuration = {
-    //knowledgeBaseId: process.env.QnAKnowledgebaseId,
-    //endpointKey: process.env.QnAAuthKey,
-    //host: process.env.QnAEndpointHostName
+    knowledgeBaseId: process.env.QnAKnowledgebaseId,
+    endpointKey: process.env.QnAAuthKey,
+    host: process.env.QnAEndpointHostName
  };
 
  
 // If configured
 const luisAppId = process.env.LuisAppId;
 const luisAPIKey = process.env.LuisAPIKey;
-const luisAPIHostName = process.env.LuisAPIHostName || 'westus.api.cognitive.microsoft.com';
+const luisAPIHostName = process.env.LuisAPIHostName || 'westeurope.api.cognitive.microsoft.com';
 
-const LuisModelUrl = 'https://' + luisAPIHostName + '/luis/v2.0/apps/' + luisAppId + '?subscription-key=' + luisAPIKey;
+const LuisModelUrl = 'https://' + luisAPIHostName + '/luis/v2.0/apps/' + luisAppId + '?verbose=true&timezoneOffset=0&subscription-key=' + luisAPIKey;
 
 const luisRecognizer = new LuisRecognizer(LuisModelUrl);
 

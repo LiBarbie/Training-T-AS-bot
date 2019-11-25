@@ -1,0 +1,498 @@
+{
+  "luis_schema_version": "4.0.0",
+  "versionId": "0.1",
+  "name": "Everis_Certifications",
+  "desc": "An AI to understand Everis Certifications and respond on the Training T&AS Bot",
+  "culture": "en-us",
+  "tokenizerVersion": "1.0.0",
+  "intents": [
+    {
+      "name": "AskForCertification"
+    },
+    {
+      "name": "AskForEmployee"
+    },
+    {
+      "name": "AskForResource"
+    },
+    {
+      "name": "None"
+    }
+  ],
+  "entities": [],
+  "composites": [],
+  "closedLists": [
+    {
+      "name": "Certification Path",
+      "subLists": [
+        {
+          "canonicalForm": "SQL",
+          "list": [
+            "sql"
+          ]
+        },
+        {
+          "canonicalForm": "Perl",
+          "list": [
+            "perl"
+          ]
+        },
+        {
+          "canonicalForm": "Natural",
+          "list": [
+            "natural"
+          ]
+        },
+        {
+          "canonicalForm": "Microsoft",
+          "list": [
+            "microsoft"
+          ]
+        },
+        {
+          "canonicalForm": "Java",
+          "list": [
+            "java"
+          ]
+        },
+        {
+          "canonicalForm": "AngularJS",
+          "list": [
+            "Angular JS"
+          ]
+        },
+        {
+          "canonicalForm": "ML/IA",
+          "list": [
+            "ml / ia",
+            "machine learning / artificial intelligence",
+            "machine learning",
+            "artificial intelligence"
+          ]
+        },
+        {
+          "canonicalForm": "SQL Server",
+          "list": [
+            "SQLServer",
+            "sql server"
+          ]
+        },
+        {
+          "canonicalForm": "Siebel",
+          "list": [
+            "siebel"
+          ]
+        },
+        {
+          "canonicalForm": "Oracle",
+          "list": [
+            "oracle"
+          ]
+        },
+        {
+          "canonicalForm": "MongoDB",
+          "list": [
+            "Mongo DB"
+          ]
+        },
+        {
+          "canonicalForm": "Microstrategy",
+          "list": [
+            "microstrategy",
+            "micro strategy"
+          ]
+        },
+        {
+          "canonicalForm": "IBM",
+          "list": [
+            "iibm"
+          ]
+        },
+        {
+          "canonicalForm": "Corda",
+          "list": [
+            "corda"
+          ]
+        },
+        {
+          "canonicalForm": "Trifacta",
+          "list": [
+            "trifacta"
+          ]
+        },
+        {
+          "canonicalForm": "Neo4j",
+          "list": [
+            "neo4j",
+            "Neo 4J"
+          ]
+        },
+        {
+          "canonicalForm": "Hortonworks",
+          "list": [
+            "hortonworks"
+          ]
+        },
+        {
+          "canonicalForm": "Confluent",
+          "list": [
+            "confluent"
+          ]
+        },
+        {
+          "canonicalForm": "Cloudera",
+          "list": [
+            "cloudera"
+          ]
+        },
+        {
+          "canonicalForm": "Apttus",
+          "list": [
+            "apttus"
+          ]
+        },
+        {
+          "canonicalForm": "SAP",
+          "list": [
+            "sap"
+          ]
+        }
+      ],
+      "roles": []
+    },
+    {
+      "name": "Knowledge Area",
+      "subLists": [
+        {
+          "canonicalForm": "Programming",
+          "list": [
+            "Development",
+            "Developing"
+          ]
+        },
+        {
+          "canonicalForm": "ML/IA",
+          "list": [
+            "ml / ia",
+            "machine learning / artificial intelligence",
+            "machine learning",
+            "artificial intelligence"
+          ]
+        },
+        {
+          "canonicalForm": "Database",
+          "list": [
+            "DB",
+            "database",
+            "db"
+          ]
+        },
+        {
+          "canonicalForm": "Cloud",
+          "list": [
+            "cloud"
+          ]
+        },
+        {
+          "canonicalForm": "Business Intelligence",
+          "list": [
+            "business intelligence",
+            "BI",
+            "bi",
+            "business ai"
+          ]
+        },
+        {
+          "canonicalForm": "Blockchain",
+          "list": [
+            "blockchain"
+          ]
+        },
+        {
+          "canonicalForm": "Big Data",
+          "list": [
+            "bigdata",
+            "big data"
+          ]
+        },
+        {
+          "canonicalForm": "SaaS",
+          "list": [
+            "saas",
+            "software as a service"
+          ]
+        },
+        {
+          "canonicalForm": "UX/UI Design",
+          "list": [
+            "ux / ui",
+            "user experience / user interface design",
+            "user experience design",
+            "user interface design"
+          ]
+        },
+        {
+          "canonicalForm": "Salesforce",
+          "list": [
+            "salesforce"
+          ]
+        },
+        {
+          "canonicalForm": "RPA",
+          "list": [
+            "rpa"
+          ]
+        },
+        {
+          "canonicalForm": "API & Integration",
+          "list": [
+            "api and integration"
+          ]
+        },
+        {
+          "canonicalForm": "Infrastructure",
+          "list": [
+            "infrastructure"
+          ]
+        },
+        {
+          "canonicalForm": "Governance",
+          "list": [
+            "governance",
+            "government"
+          ]
+        },
+        {
+          "canonicalForm": "Management",
+          "list": [
+            "management",
+            "administration"
+          ]
+        },
+        {
+          "canonicalForm": "Portals/CMS",
+          "list": [
+            "portals / cms",
+            "portals",
+            "cms"
+          ]
+        }
+      ],
+      "roles": []
+    },
+    {
+      "name": "Objects",
+      "subLists": [
+        {
+          "canonicalForm": "Certification",
+          "list": [
+            "Certifications",
+            "certification",
+            "certifications"
+          ]
+        },
+        {
+          "canonicalForm": "SafariBooksOnline",
+          "list": [
+            "O'Reilly",
+            "safaribooksonline",
+            "o'reilly",
+            "OReilly",
+            "oreilly",
+            "safaribookonline"
+          ]
+        }
+      ],
+      "roles": []
+    }
+  ],
+  "patternAnyEntities": [],
+  "regex_entities": [],
+  "prebuiltEntities": [
+    {
+      "name": "personName",
+      "roles": []
+    }
+  ],
+  "model_features": [],
+  "regex_features": [],
+  "patterns": [],
+  "utterances": [
+    {
+      "text": "are there any sql resources in o'reilly?",
+      "intent": "AskForResource",
+      "entities": []
+    },
+    {
+      "text": "are there in o'reilly any java resources?",
+      "intent": "AskForResource",
+      "entities": []
+    },
+    {
+      "text": "are there some siebel certifications?",
+      "intent": "AskForCertification",
+      "entities": []
+    },
+    {
+      "text": "can i access the management resources in o'reilly?",
+      "intent": "AskForResource",
+      "entities": []
+    },
+    {
+      "text": "can i get a java resource from safaribooksonline?",
+      "intent": "AskForResource",
+      "entities": []
+    },
+    {
+      "text": "can i have a sql certification?",
+      "intent": "None",
+      "entities": []
+    },
+    {
+      "text": "can i have informations about governance",
+      "intent": "AskForCertification",
+      "entities": []
+    },
+    {
+      "text": "can you show me the neo4j resources that are in oreilly?",
+      "intent": "AskForResource",
+      "entities": []
+    },
+    {
+      "text": "can you tell me about ml/ia certifications?",
+      "intent": "AskForCertification",
+      "entities": []
+    },
+    {
+      "text": "can you tell me who's a microsoft certifications?",
+      "intent": "AskForEmployee",
+      "entities": []
+    },
+    {
+      "text": "does carlos lewis have a microsoft certification?",
+      "intent": "None",
+      "entities": []
+    },
+    {
+      "text": "does everis provide infrastructure certifications?",
+      "intent": "AskForCertification",
+      "entities": []
+    },
+    {
+      "text": "does your company offer something about sql certification?",
+      "intent": "AskForCertification",
+      "entities": []
+    },
+    {
+      "text": "i want a sap certification",
+      "intent": "None",
+      "entities": []
+    },
+    {
+      "text": "i want the microsoft resources that are in safaribooksonline",
+      "intent": "AskForResource",
+      "entities": []
+    },
+    {
+      "text": "i want to contact someone who's a management certification",
+      "intent": "AskForEmployee",
+      "entities": []
+    },
+    {
+      "text": "i want to know about saas certifications",
+      "intent": "AskForCertification",
+      "entities": []
+    },
+    {
+      "text": "i want to know about the sql certifications",
+      "intent": "AskForCertification",
+      "entities": []
+    },
+    {
+      "text": "i want to learn about sql database certification",
+      "intent": "AskForCertification",
+      "entities": []
+    },
+    {
+      "text": "i want to speak with the manager",
+      "intent": "None",
+      "entities": []
+    },
+    {
+      "text": "i'd like to ask someone about a rpa certification",
+      "intent": "AskForEmployee",
+      "entities": []
+    },
+    {
+      "text": "i'd like to get in touch to someone who has got a big data certification",
+      "intent": "AskForEmployee",
+      "entities": []
+    },
+    {
+      "text": "i'm interested in programming certifications",
+      "intent": "AskForCertification",
+      "entities": []
+    },
+    {
+      "text": "is there an employee who has a blockchain certification?",
+      "intent": "AskForEmployee",
+      "entities": []
+    },
+    {
+      "text": "is there someone who has a oracle certification?",
+      "intent": "AskForEmployee",
+      "entities": []
+    },
+    {
+      "text": "show me the programming resouces in safaribooksonline",
+      "intent": "AskForResource",
+      "entities": []
+    },
+    {
+      "text": "what are the java resources in safaribooksonline?",
+      "intent": "AskForResource",
+      "entities": []
+    },
+    {
+      "text": "what is everis?",
+      "intent": "None",
+      "entities": []
+    },
+    {
+      "text": "which are the certifications of microsoft?",
+      "intent": "AskForCertification",
+      "entities": []
+    },
+    {
+      "text": "which are the java certifications?",
+      "intent": "AskForCertification",
+      "entities": []
+    },
+    {
+      "text": "which are the salesforce certification?",
+      "intent": "AskForCertification",
+      "entities": []
+    },
+    {
+      "text": "who has a cms certification?",
+      "intent": "AskForEmployee",
+      "entities": []
+    },
+    {
+      "text": "who has got the perl certification i'm interested in?",
+      "intent": "AskForEmployee",
+      "entities": []
+    },
+    {
+      "text": "who is lewis capalbi?",
+      "intent": "None",
+      "entities": []
+    },
+    {
+      "text": "whom can i ask for sql certifications?",
+      "intent": "AskForEmployee",
+      "entities": []
+    }
+  ],
+  "settings": []
+}

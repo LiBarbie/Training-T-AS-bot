@@ -13,31 +13,31 @@ const axios = require("axios");
 class MyBot extends ActivityHandler {
     constructor(configuration, qnaOptions,clientSQL,luisRecognizer) {
         super();
-        //if (!configuration) throw new Error('[QnaMakerBot]: Missin--g parameter. configuration is required');
-        // now create a qnaMaker connector.
-        //this.qnaMaker = new QnAMaker(configuration, qnaOptions);
+        if (!configuration) throw new Error('[QnaMakerBot]: Missin--g parameter. configuration is required');
+        //now create a qnaMaker connector.
+        this.qnaMaker = new QnAMaker(configuration, qnaOptions);
         this.luisRecognizer = luisRecognizer;
         
         // See https://aka.ms/about-bot-activity-message to learn more about the message and other activity types.
         this.onMessage(async (context, next) => {
             // send user input to QnA Maker.
-            //const qnaResults = await this.qnaMaker.getAnswers(context);
+            const qnaResults = await this.qnaMaker.getAnswers(context);
             await context.sendActivity("Please wait ...");
             // If an answer was received from QnA Maker, send the answer back to the user.
-            //if (qnaResults[0] && qnaResults[0].score >= 0.70) {
-             //   await context.sendActivity(qnaResults[0].answer);
-                //await context.sendActivity(qnaResults[0].answer+'');
-            //}//if
-            //else{
+            if (qnaResults[0] && qnaResults[0].score >= 0.70) {
+                await context.sendActivity(qnaResults[0].answer+'');
+            }//if
+            else{
+               // The question isn't a good match for QnA. Check Luis.ai
                if(luisRecognizer){
                     await this.actStep(context,luisRecognizer, clientSQL);
 
                 }//if
                 else {
-                    // If no answers were returned from QnA Maker, reply with help.
+                    // If no answers were returned from QnA Maker nor Luis, reply with help.
                     await context.sendActivity("We couldn't find any answer to your question. Try write it in a different way.");
                 }//else
-            //}
+            }//else
             await this.sendSuggestedActions(context);
             await next();
         });//onMessage
@@ -73,7 +73,8 @@ class MyBot extends ActivityHandler {
               'Be aware of specific IT events.',
               'Unsure about the starting learning path.',
               'Which are the Java certifications?',
-              'Whom can I ask for SQL certifications?'
+              'Whom can I ask for SQL certifications?',
+              'Avaiable Cobol resources in O\'Reilly?'
             ],"Suggested Questions :");
         await turnContext.sendActivity(reply);
     }//sendSuggestedActions
@@ -113,44 +114,46 @@ class MyBot extends ActivityHandler {
                     const url = 
                     "https://learning.oreilly.com/api/v2/search/?query="+entities+"&sort=relevance&sort=average_rating&languages=en&topics="+entities+"&limit=3&fields=title&fields=authors&fields=cover_url&fields=web_url&facet_json=true" 
                     const getData = async url => {
-                    try {
-                        const response = await axios.get(url);
-                        const data = response.data;
-                        const result = data.results;
+                        try {
+                            const response = await axios.get(url);
+                            const data = response.data;
+                            const result = data.results;
 
-                        let titles=[], authors=[], covers=[], urls=[];
-                        let infos=[];
-                        
-                        result.forEach(function(infos){
-                            titles.push(infos.title);
-                            authors.push(infos.authors);
-                            covers.push(infos.cover_url);
-                            urls.push("https://learning.oreilly.com"+infos.web_url);
-                        });
+                            let titles=[], authors=[], covers=[], urls=[];
+                            let infos=[];
+                            
+                            result.forEach(function(infos){
+                                titles.push(infos.title);
+                                authors.push("by "+infos.authors);
+                                covers.push(infos.cover_url);
+                                urls.push("https://learning.oreilly.com"+infos.web_url);
+                            });
 
-                        infos.push(titles);
-                        infos.push(authors);
-                        infos.push(covers);
-                        infos.push(urls);
+                            infos.push(titles);
+                            infos.push(authors);
+                            infos.push(covers);
+                            infos.push(urls);
 
-                        return infos;
+                            return infos;
 
-                    } catch (error) {
-                        console.log(error);
-                    }
-                    };
+                        }//try
+                        catch (error) {
+                            console.log(error);
+                        }//catch
+                    };//getData
                     
                     const promise = getData(url);
                     let info="";
 
                     await Promise.resolve(promise).then(function(value) {
                         info=value;
-                    });
+                    });//resolve Promise
 
                     await stepContext.sendActivity({attachments : [CardFactory.adaptiveCard(ResourceCard.createResourceCard(
                         info[0][0],info[0][1],info[0][2],info[1][0],info[1][1],info[1][2],info[2][0],info[2][1],info[2][2],info[3][0],info[3][1],info[3][2]
-                    ))]});
+                    ))]});//SendActivity
                 break;
+
                 //found the Luis entity but no intent.
                 default :
                     await stepContext.sendActivity("We couldn't find any answer to your question. Try write it in a different way.");
