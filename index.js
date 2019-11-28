@@ -6,6 +6,8 @@ const path = require('path');
 const restify = require('restify');
 const MySql = require('sync-mysql');
 const {LuisRecognizer } = require('botbuilder-ai');
+const CosmosClient = require('@azure/cosmos').CosmosClient;
+
 
 // Import required bot services.
 // See https://aka.ms/bot-services to learn more about the different parts of a bot.
@@ -46,6 +48,14 @@ const configuration = {
     host: process.env.QnAEndpointHostName
  };
 
+ //disable SSL verification if using CosmosDB Emulator
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+const endpoint = "https://localhost:8081/";
+const key =  "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==";
+const clientCosmoDB = new CosmosClient({
+    endpoint, key
+});
+
  
 // If configured
 const luisAppId = process.env.LuisAppId;
@@ -67,7 +77,7 @@ adapter.onTurnError = async (context, error) => {
 };
 
 // Create the main dialog.
-const myBot = new MyBot(configuration, {},conSQL, luisRecognizer);
+const myBot = new MyBot(configuration, {},clientCosmoDB, luisRecognizer);
 
 // Listen for incoming requests.
 server.post('/api/messages', (req, res) => {

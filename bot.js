@@ -11,33 +11,33 @@ const axios = require("axios");
 
 
 class MyBot extends ActivityHandler {
-    constructor(configuration, qnaOptions,clientSQL,luisRecognizer) {
+    constructor(configuration, qnaOptions,clientCosmoDB,luisRecognizer) {
         super();
         if (!configuration) throw new Error('[QnaMakerBot]: Missin--g parameter. configuration is required');
         //now create a qnaMaker connector.
-        this.qnaMaker = new QnAMaker(configuration, qnaOptions);
+        //this.qnaMaker = new QnAMaker(configuration, qnaOptions);
         this.luisRecognizer = luisRecognizer;
         
         // See https://aka.ms/about-bot-activity-message to learn more about the message and other activity types.
         this.onMessage(async (context, next) => {
             // send user input to QnA Maker.
-            const qnaResults = await this.qnaMaker.getAnswers(context);
+            //const qnaResults = await this.qnaMaker.getAnswers(context);
             await context.sendActivity("Please wait ...");
             // If an answer was received from QnA Maker, send the answer back to the user.
-            if (qnaResults[0] && qnaResults[0].score >= 0.70) {
-                await context.sendActivity(qnaResults[0].answer+'');
-            }//if
-            else{
+            //if (qnaResults[0] && qnaResults[0].score >= 0.70) {
+              //  await context.sendActivity(qnaResults[0].answer+'');
+            //}//if
+           //else{
                // The question isn't a good match for QnA. Check Luis.ai
                if(luisRecognizer){
-                    await this.actStep(context,luisRecognizer, clientSQL);
+                    await this.actStep(context,luisRecognizer, clientCosmoDB);
 
                 }//if
                 else {
                     // If no answers were returned from QnA Maker nor Luis, reply with help.
                     await context.sendActivity("We couldn't find any answer to your question. Try write it in a different way.");
                 }//else
-            }//else
+            //}//else
             await this.sendSuggestedActions(context);
             await next();
         });//onMessage
@@ -85,8 +85,8 @@ class MyBot extends ActivityHandler {
         @param clientSQL the SQL connection
         @return the result of the Luis Query
     */
-    async actStep(stepContext, luisRecognizer, clientSQL){
-        let resultSQL="", entities, result;
+    async actStep(stepContext, luisRecognizer, clientCosmoDB){
+        let resultSQL="", entities, result, query, container;
 
         //if he can't find an intent/entity it's undefined.
         try{
@@ -96,18 +96,29 @@ class MyBot extends ActivityHandler {
             switch (LuisRecognizer.topIntent(result)) {
                 //the user asked for a certification
                 case 'AskForCertification':
-                    //send the query to the database
-                    resultSQL = clientSQL.query("SELECT k_a.K_A_Name, c_p.C_P_Name, c.C_Name from certification as c join certification_path as c_p on c.C_P_Name=c_p.C_P_Name join knowledge_area as k_a on k_a.K_A_Name=c_p.K_A_Name where c.C_P_Name LIKE '%"+entities+"%' or c_p.K_A_Name LIKE '%"+entities+"%' or c.C_Name LIKE '%"+entities+"%'");
-                    await stepContext.sendActivity(this.toStringCertifications(resultSQL));
-                    break;
+                   //send the query to the database
+                   container = "certification"
+                   query = "SELECT c.K_A_Name, c.C_P_Name, c.C_Name FROM "+container+" c where CONTAINS (c.K_A_Name, \""+entities+"\") or CONTAINS(c.C_P_Name, \""+entities+"\") or CONTAINS(c.C_Name, \""+entities+"\")"
+                   result = this.queryContainer(clientCosmoDB, query, container);
+                   await Promise.resolve(result).then(function(value) {
+                       result= value;
+                   });//resolve Promise
+                   await stepContext.sendActivity(this.toStringCertifications(result));
+                break;
+
                 //the user asked who has a certain certification
                 case 'AskForEmployee' :
                     //send the query to the database
-                    resultSQL = clientSQL.query("SELECT DISTINCT e.Name, e.Surname FROM certification_employee as c_e join certification as c on c.C_Name = c_e.C_Name join certification_path as c_p on c_p.C_P_Name = c.C_P_Name join knowledge_area as k_a on k_a.K_A_Name = c_p.K_A_Name join employee as e on e.ID_E = c_e.ID_E where c_p.C_P_Name LIKE '%"+entities+"%' or k_a.K_A_Name='%"+entities+"%' or c.C_Name LIKE '%"+entities+"%'");
-                    await stepContext.sendActivity(this.toStringEmployee(resultSQL));
-                    break;
-                //the user asked for specific resources in O'Reilly / SafariBooksOnline
+                   container = "employee"
+                   query = "SELECT DISTINCT e.Name, e.Surname FROM "+container+" e JOIN c IN e.certification where CONTAINS(c.C_Name, \""+entities+"\") or CONTAINS(c.C_P_Name, \""+entities+"\") or CONTAINS(c.K_A_Name, \""+entities+"\")"
+                   result = this.queryContainer(clientCosmoDB, query, container);
+                   await Promise.resolve(result).then(function(value) {
+                       result= value;
+                   });//resolve Promise
+                   await stepContext.sendActivity(this.toStringEmployee(result));
+                break;
 
+                //the user asked for specific resources in O'Reilly / SafariBooksOnline
                 case 'AskForResource' :
                     //what are the java resources in safaribooksonline?
 
@@ -157,13 +168,26 @@ class MyBot extends ActivityHandler {
                 //found the Luis entity but no intent.
                 default :
                     await stepContext.sendActivity("We couldn't find any answer to your question. Try write it in a different way.");
-                    break;
+                break;
             }//switch
         }//try
         catch(e){
             await stepContext.sendActivity("We couldn't find any answer to your question. Try write it in a different way.");
         }//catch
     }//actStep
+
+    /**
+    * Query the container using CosmoDB
+    */
+    async queryContainer(cosmoClient, q, c) {
+        // query 
+        const querySpec = {
+            query : q,
+            parameters: []
+        };
+        const { resources } = await cosmoClient.database("tasdb").container(c).items.query(querySpec, {enableCrossPartitionQuery:true}).fetchAll();
+        return resources;
+    }//queryContainer 
 
     /*
         @param jsonObject the JSON Object sent by the SQL Database
