@@ -4,7 +4,6 @@
 const dotenv = require('dotenv');
 const path = require('path');
 const restify = require('restify');
-const MySql = require('sync-mysql');
 const {LuisRecognizer } = require('botbuilder-ai');
 const CosmosClient = require('@azure/cosmos').CosmosClient;
 
@@ -28,12 +27,6 @@ server.listen(process.env.port || process.env.PORT || 3978, () => {
     console.log(`\nTo test your bot, see: https://aka.ms/debug-with-emulator`);
 });
 
-const conSQL = new MySql({
-    host: "localhost",
-    user: "root",
-    database : "tasdb"
-});
-
 // Create adapter.
 // See https://aka.ms/about-bot-adapter to learn more about how bots work.
 const adapter = new BotFrameworkAdapter({
@@ -42,7 +35,7 @@ const adapter = new BotFrameworkAdapter({
 });
 
 // Map knowledge base endpoint values from .env file into the required format for `QnAMaker`.
-const configuration = {
+const qnaConfiguration = {
     knowledgeBaseId: process.env.QnAKnowledgebaseId,
     endpointKey: process.env.QnAAuthKey,
     host: process.env.QnAEndpointHostName
@@ -77,7 +70,7 @@ adapter.onTurnError = async (context, error) => {
 };
 
 // Create the main dialog.
-const myBot = new MyBot(configuration, {},clientCosmoDB, luisRecognizer);
+const myBot = new MyBot(qnaConfiguration, {},clientCosmoDB, luisRecognizer);
 
 // Listen for incoming requests.
 server.post('/api/messages', (req, res) => {

@@ -5,29 +5,27 @@ const { ActivityHandler, MessageFactory, CardFactory } = require('botbuilder');
 const ResourceCard = require('./resources/resourcecard.js');
 
 const { QnAMaker, LuisRecognizer } = require('botbuilder-ai');
-const https = require('https');
-
 const axios = require("axios");
 
 
 class MyBot extends ActivityHandler {
-    constructor(configuration, qnaOptions,clientCosmoDB,luisRecognizer) {
+    constructor(qnaConfiguration, qnaOptions,clientCosmoDB,luisRecognizer) {
         super();
-        if (!configuration) throw new Error('[QnaMakerBot]: Missin--g parameter. configuration is required');
+        if (!qnaConfiguration) throw new Error('[QnaMakerBot]: Missin--g parameter. configuration is required');
         //now create a qnaMaker connector.
-        //this.qnaMaker = new QnAMaker(configuration, qnaOptions);
+        this.qnaMaker = new QnAMaker(qnaConfiguration, qnaOptions);
         this.luisRecognizer = luisRecognizer;
         
         // See https://aka.ms/about-bot-activity-message to learn more about the message and other activity types.
         this.onMessage(async (context, next) => {
             // send user input to QnA Maker.
-            //const qnaResults = await this.qnaMaker.getAnswers(context);
+            const qnaResults = await this.qnaMaker.getAnswers(context);
             await context.sendActivity("Please wait ...");
             // If an answer was received from QnA Maker, send the answer back to the user.
-            //if (qnaResults[0] && qnaResults[0].score >= 0.70) {
-              //  await context.sendActivity(qnaResults[0].answer+'');
-            //}//if
-           //else{
+            if (qnaResults[0] && qnaResults[0].score >= 0.70) {
+                await context.sendActivity(qnaResults[0].answer+'');
+            }//if
+            else{
                // The question isn't a good match for QnA. Check Luis.ai
                if(luisRecognizer){
                     await this.actStep(context,luisRecognizer, clientCosmoDB);
@@ -37,7 +35,7 @@ class MyBot extends ActivityHandler {
                     // If no answers were returned from QnA Maker nor Luis, reply with help.
                     await context.sendActivity("We couldn't find any answer to your question. Try write it in a different way.");
                 }//else
-            //}//else
+            }//else
             await this.sendSuggestedActions(context);
             await next();
         });//onMessage
