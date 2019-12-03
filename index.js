@@ -10,7 +10,7 @@ const CosmosClient = require('@azure/cosmos').CosmosClient;
 
 // Import required bot services.
 // See https://aka.ms/bot-services to learn more about the different parts of a bot.
-const { BotFrameworkAdapter } = require('botbuilder');
+const { BotFrameworkAdapter,MemoryStorage, ConversationState, UserState } = require('botbuilder');
 
 // This bot's main dialog.
 const { MyBot } = require('./bot');
@@ -69,8 +69,13 @@ adapter.onTurnError = async (context, error) => {
     await context.sendActivity(`Oops. Something went wrong!`);
 };
 
+
+// Create conversation and user state with in-memory storage provider.
+const memoryStorage = new MemoryStorage();
+const conversationState = new ConversationState(memoryStorage);
+
 // Create the main dialog.
-const myBot = new MyBot(qnaConfiguration, {},clientCosmoDB, luisRecognizer);
+const myBot = new MyBot(qnaConfiguration, {},clientCosmoDB, luisRecognizer,conversationState);
 
 // Listen for incoming requests.
 server.post('/api/messages', (req, res) => {

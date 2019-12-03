@@ -5,38 +5,82 @@ const { ActivityHandler, MessageFactory, CardFactory } = require('botbuilder');
 const ResourceCard = require('./resources/resourcecard.js');
 
 const { QnAMaker, LuisRecognizer } = require('botbuilder-ai');
+let async = require('async');
 const axios = require("axios");
 
+// The accessor names for the conversation flow and user profile state property accessors.
+const CONVERSATION_FLOW_PROPERTY = 'CONVERSATION_FLOW_PROPERTY';
+
+// Identifies the last question asked.
+const question_certification = {
+    certification_name : "certification_name",
+    employee_number : "employee_number",
+    issued_date : "issued_date",
+    expired_date : "expired_date",
+    issued_year : "issued_year",
+    none : "none"
+};
+
+let infos_certification = {
+    certification_name : "",
+    employee_number : "",
+    issued_date : "",
+    expired_date : "",
+    issued_year : ""
+};
+
+let notInDialog = true;
 
 class MyBot extends ActivityHandler {
-    constructor(qnaConfiguration, qnaOptions,clientCosmoDB,luisRecognizer) {
+    constructor(qnaConfiguration, qnaOptions,clientCosmoDB,luisRecognizer,conversationState) {
         super();
         if (!qnaConfiguration) throw new Error('[QnaMakerBot]: Missin--g parameter. configuration is required');
         //now create a qnaMaker connector.
         this.qnaMaker = new QnAMaker(qnaConfiguration, qnaOptions);
         this.luisRecognizer = luisRecognizer;
-        
+
+        // The state property accessors for conversation flow and user profile.
+        this.conversationFlow = conversationState.createProperty(CONVERSATION_FLOW_PROPERTY);
+
+        // The state management objects for the conversation and user.
+        this.conversationState = conversationState;
+
         // See https://aka.ms/about-bot-activity-message to learn more about the message and other activity types.
         this.onMessage(async (context, next) => {
-            // send user input to QnA Maker.
-            const qnaResults = await this.qnaMaker.getAnswers(context);
-            await context.sendActivity("Please wait ...");
-            // If an answer was received from QnA Maker, send the answer back to the user.
-            if (qnaResults[0] && qnaResults[0].score >= 0.70) {
-                await context.sendActivity(qnaResults[0].answer+'');
-            }//if
-            else{
-               // The question isn't a good match for QnA. Check Luis.ai
-               if(luisRecognizer){
-                    await this.actStep(context,luisRecognizer, clientCosmoDB);
+            const flow = await this.conversationFlow.get(context, { lastQuestionAsked: question_certification.none });
 
+            //the user isn't in the dialog flow to add a certification
+            if(notInDialog){
+                // send user input to QnA Maker.
+                const qnaResults = await this.qnaMaker.getAnswers(context);
+                await context.sendActivity("Please wait ...");
+                // If an answer was received from QnA Maker, send the answer back to the user.
+                if (qnaResults[0] && qnaResults[0].score >= 0.70) {
+                    await context.sendActivity(qnaResults[0].answer+'');
+                    await this.sendSuggestedActions(context);
                 }//if
-                else {
-                    // If no answers were returned from QnA Maker nor Luis, reply with help.
-                    await context.sendActivity("We couldn't find any answer to your question. Try write it in a different way.");
+                else{
+                // The question isn't a good match for QnA. Check Luis.ai
+                    if(luisRecognizer){
+                        const result = await this.actStep(context,luisRecognizer, clientCosmoDB);
+                        if(result=="intodialogstate"){
+                            notInDialog=false;
+                            await MyBot.fillOutCertificationInfos(flow, context);
+                        }//if
+                        else{
+                            await this.sendSuggestedActions(context);
+                        }//else
+                    }//if
+                    else {
+                        // If no answers were returned from QnA Maker nor Luis, reply with help.
+                        await context.sendActivity("We couldn't find any answer to your question. Try write it in a different way.");
+                        await this.sendSuggestedActions(context);
+                    }//else
                 }//else
-            }//else
-            await this.sendSuggestedActions(context);
+            }//ifNotInDialog
+            else{
+                await MyBot.fillOutCertificationInfos(flow, context);
+            }//if
             await next();
         });//onMessage
 
@@ -52,7 +96,80 @@ class MyBot extends ActivityHandler {
             await next();
         });//onMembersAdded
 
+        this.onDialog(async (context, next) => {
+            // Save any state chang es. The load happened during the execution of the Dialog.
+            await this.conversationState.saveChanges(context, false);
+
+            // By calling next() you ensure that the next BotHandler is run.
+            await next();
+        });
     }//constructor
+
+    // Manages the conversation flow for filling out the user's profile.
+    static async fillOutCertificationInfos(flow, turnContext) {
+        const input = turnContext.activity.text;
+        
+        //the user clicked cancel to cancel the entire operation
+        if(input=="Cancel"){
+            await turnContext.sendActivity("Operation Canceled");
+            infos_certification = {};
+            flow.lastQuestionAsked = question_certification.none;
+            notInDialog = true;
+            return 0;
+        }//if
+
+        switch (flow.lastQuestionAsked) {
+            // If we're just starting off, we haven't asked the user for any information yet.
+            // Ask the user for their name and update the conversation flag.
+            case question_certification.none:
+                await turnContext.sendActivity("Insert the Certification Name.");
+                flow.lastQuestionAsked = question_certification.certification_name;
+            break;
+
+            // If we last asked for their name, record their response, confirm that we got it.
+            // Ask them for their age and update the conversation flag.
+            case question_certification.certification_name:
+                infos_certification.certification_name = input;
+                await turnContext.sendActivity('Insert the Employee Number.');
+                flow.lastQuestionAsked = question_certification.employee_number;
+            break;
+                    
+            case question_certification.employee_number:
+                infos_certification.employee_number = input;
+                await turnContext.sendActivity('Insert the Issued Date.');
+                flow.lastQuestionAsked = question_certification.issued_date;
+            break;
+
+            // If we last asked for their age, record their response, confirm that we got it.
+            // Ask them for their date preference and update the conversation flag.
+            case question_certification.issued_date:
+                    infos_certification.issued_date = input;
+                    await turnContext.sendActivity('Insert the Expired Date.');
+                    flow.lastQuestionAsked = question_certification.expired_date;
+            break;
+
+            // If we last asked for a date, record their response, confirm that we got it,
+            // let them know the process is complete, and update the conversation flag.
+            case question_certification.expired_date:
+                infos_certification.expired_date = input;
+                await turnContext.sendActivity('Insert the Issued Year.');
+                flow.lastQuestionAsked = question_certification.issued_year;
+            break;
+
+            case question_certification.issued_year:
+                infos_certification.issued_year = input;
+                await turnContext.sendActivity('Please wait...');
+                await turnContext.sendActivity(JSON.stringify(infos_certification)+"");
+                infos_certification = {};
+                flow.lastQuestionAsked = question_certification.none;
+                notInDialog = true;
+                return 0;
+        }//switch
+        var reply = MessageFactory.suggestedActions([
+            'Cancel'
+        ]);
+        await turnContext.sendActivity(reply);
+    }//fillOutCertificationInfos
 
     /*
         @param turnContext the context of the bot
@@ -84,14 +201,17 @@ class MyBot extends ActivityHandler {
         @return the result of the Luis Query
     */
     async actStep(stepContext, luisRecognizer, clientCosmoDB){
-        let resultSQL="", entities, result, query, container;
+        let entities, result, query, container;
 
         //if he can't find an intent/entity it's undefined.
         try{
             result = await this.luisRecognizer.recognize(stepContext);
-            entities = result.entities.Knowledge_Area ? result.entities.Knowledge_Area[0] : result.entities.Certification_Path[0];
+            entities = result.entities.Knowledge_Area ? result.entities.Knowledge_Area[0] : (result.entities.Certification_Path ? result.entities.Certification_Path[0] : "");
             //switch the luis intents.
             switch (LuisRecognizer.topIntent(result)) {
+                case 'AddCertification' : 
+                    return "intodialogstate"
+
                 //the user asked for a certification
                 case 'AskForCertification':
                    //send the query to the database
