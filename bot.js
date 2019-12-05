@@ -69,7 +69,10 @@ class MyBot extends ActivityHandler {
               'Want to get certified in a technology/area.',
               'Get help to achieve certification by Everis.',
               'Be aware of specific IT events.',
-              'Unsure about the starting learning path.'
+              'Unsure about the starting learning path.',
+              'Which are the Java certifications?',
+              'Whom can I ask for SQL certifications?',
+              'Avaiable Cobol resources in O\'Reilly?'
             ],"Suggested Questions :");
         await turnContext.sendActivity(reply);
     }//sendSuggestedActions
